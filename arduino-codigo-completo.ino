@@ -9,8 +9,8 @@
 #include <ArduinoJson.h>
 
 // Configuração da rede WiFi
-const char* ssid = "SEU_WIFI";
-const char* password = "SUA_SENHA";
+const char* ssid = "Show";
+const char* password = "87602325";
 
 // Pinos do sensor
 #define SENSOR_PIN 4  // GPIO4 (D2)
