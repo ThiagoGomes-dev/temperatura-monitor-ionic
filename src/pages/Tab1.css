@@ -1,0 +1,117 @@
+.container {
+  padding: 20px;
+}
+
+.temperatura-card {
+  margin-bottom: 20px;
+}
+
+.temperatura-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+  color: var(--ion-color-primary);
+}
+
+.temperatura-icon {
+  margin-right: 10px;
+  font-size: 1.5rem;
+}
+
+.temperatura-content {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.temperatura-display {
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 15px;
+  transition: all 0.3s ease;
+}
+
+.temperatura-valor {
+  font-size: 3rem;
+  font-weight: bold;
+  display: block;
+}
+
+.temperatura-fria {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #1565c0;
+}
+
+.temperatura-agradavel {
+  background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+  color: #2e7d32;
+}
+
+.temperatura-quente {
+  background: linear-gradient(135deg, #fff3e0, #ffcc02);
+  color: #ef6c00;
+}
+
+.temperatura-muito-quente {
+  background: linear-gradient(135deg, #ffebee, #ffcdd2);
+  color: #c62828;
+}
+
+.status-info {
+  margin-top: 20px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--ion-color-medium);
+}
+
+.status-value {
+  font-weight: 600;
+}
+
+.status-value.conectado {
+  color: var(--ion-color-success);
+}
+
+.status-value.desconectado {
+  color: var(--ion-color-warning);
+}
+
+.status-value.warning {
+  color: var(--ion-color-warning);
+  font-size: 0.9rem;
+}
+
+.action-buttons {
+  margin-bottom: 20px;
+}
+
+.register-button {
+  margin-bottom: 10px;
+  --background: var(--ion-color-primary);
+}
+
+.refresh-button {
+  --color: var(--ion-color-primary);
+  --border-color: var(--ion-color-primary);
+}
+
+.info-card ion-card-content p {
+  margin-bottom: 8px;
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+
+ion-spinner {
+  --color: var(--ion-color-primary);
+  width: 60px;
+  height: 60px;
+}

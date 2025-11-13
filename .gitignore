@@ -29,3 +29,20 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+
+# Arquivos desnecessários para o repositório
+RESUMO_PROJETO.md
+CHECKLIST_EXECUCAO.md
+
+# Cypress (testes não são necessários)
+cypress/
+cypress.config.ts
+
+# Build files
+dist/
+
+# Configurações do VS Code específicas
+.vscode/
+
+# Arquivos de configuração desnecessários
+.browserslistrc
