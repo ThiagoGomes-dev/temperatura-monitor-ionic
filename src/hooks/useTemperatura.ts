@@ -32,7 +32,11 @@ export const useTemperatura = () => {
         { timeout: 5000 }
       );
       
-      console.log('Resposta da API:', response.data);
+      console.log('✅ RESPOSTA COMPLETA DA API:');
+      console.log('Status HTTP:', response.status);
+      console.log('Headers:', response.headers);
+      console.log('Data (JSON):', response.data);
+      console.log('Temperatura recebida:', response.data.temperatura);
       
       setTemperaturaAtual(response.data.temperatura);
       setConectado(true);
@@ -57,9 +61,12 @@ export const useTemperatura = () => {
   const testarConexao = useCallback(async (ip: string, porta: string): Promise<boolean> => {
     try {
       const url = `http://${ip}:${porta}/status`;
+      console.log('🔍 Testando conexão:', url);
       const response = await axios.get(url, { timeout: 3000 });
+      console.log('✅ Resposta do teste:', response.data);
       return response.status === 200;
     } catch (error) {
+      console.log('❌ Erro no teste de conexão:', error);
       return false;
     }
   }, []);
