@@ -1,27 +1,21 @@
 // Monitor de Temperatura - ESP8266
 // Projeto: App móvel para monitoramento de temperatura
-// Hardware: ESP8266 + Sensor DS18B20
+// Hardware: ESP8266 + Sensor Analógico
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#include <ArduinoJson.h>
 
 // Configuração da rede WiFi
 const char* ssid = "Show";
 const char* password = "87602325";
 
-// Pinos do sensor
-#define SENSOR_PIN 4  // GPIO4 (D2)
-OneWire oneWire(SENSOR_PIN);
-DallasTemperature ds18b20(&oneWire);
+#define SENSOR_PIN A0
 
 ESP8266WebServer webServer(80);
 
 void setup() {
   Serial.begin(115200);
-  ds18b20.begin();
+  pinMode(SENSOR_PIN, INPUT);
   
   // Conectar à rede WiFi
   WiFi.begin(ssid, password);
@@ -49,42 +43,39 @@ void loop() {
 }
 
 void obterTemperatura() {
-  ds18b20.requestTemperatures();
-  float temp = ds18b20.getTempCByIndex(0);
+  // Leitura analógica do sensor (0-1024)
+  int leituraAnalogica = analogRead(SENSOR_PIN);
   
-  if (temp == DEVICE_DISCONNECTED_C) {
-    temp = 25.0; // fallback
-  }
+  // Fórmula: temperatura = (leitura * 3.3V / 1024) * 100°C
+  float temp = (leituraAnalogica * 3.3 / 1024.0) * 100.0;
   
-  DynamicJsonDocument json(200);
-  json["temperatura"] = temp;
-  json["timestamp"] = millis();
-  json["sensor"] = "DS18B20";
-  json["status"] = "OK";
-  
-  String resposta;
-  serializeJson(json, resposta);
+  // Criar resposta JSON manualmente
+  String resposta = "{";
+  resposta += "\"temperatura\":" + String(temp, 1) + ",";
+  resposta += "\"timestamp\":" + String(millis()) + ",";
+  resposta += "\"sensor\":\"Analogico\",";
+  resposta += "\"status\":\"OK\"";
+  resposta += "}";
   
   webServer.sendHeader("Access-Control-Allow-Origin", "*");
   webServer.send(200, "application/json", resposta);
 }
 
 void obterStatus() {
-  DynamicJsonDocument json(250);
-  json["status"] = "ESP8266 Online";
-  json["uptime"] = millis() / 1000;
-  json["ip"] = WiFi.localIP().toString();
-  
-  String resposta;
-  serializeJson(json, resposta);
+  String resposta = "{";
+  resposta += "\"status\":\"ESP8266 Online\",";
+  resposta += "\"uptime\":" + String(millis() / 1000) + ",";
+  resposta += "\"ip\":\"" + WiFi.localIP().toString() + "\"";
+  resposta += "}";
   
   webServer.sendHeader("Access-Control-Allow-Origin", "*");
   webServer.send(200, "application/json", resposta);
 }
 
 void paginaInicial() {
-  ds18b20.requestTemperatures();
-  float temp = ds18b20.getTempCByIndex(0);
+  // Leitura analógica e conversão
+  int leituraAnalogica = analogRead(SENSOR_PIN);
+  float temp = (leituraAnalogica * 3.3 / 1024.0) * 100.0;
   
   String html = "<!DOCTYPE html><html><head>";
   html += "<title>Monitor ESP8266</title>";
@@ -101,5 +92,5 @@ void paginaInicial() {
 
 // Configuração:
 // 1. Alterar ssid e password
-// 2. Instalar bibliotecas: OneWire, DallasTemperature, ArduinoJson
-// 3. Conectar DS18B20: VCC->3.3V, GND->GND, DATA->D2 (com resistor 4.7k)
+// 2. Não precisa instalar bibliotecas extras!
+// 3. Conectar sensor analógico no pino A0
