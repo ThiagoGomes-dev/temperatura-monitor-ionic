@@ -1,6 +1,6 @@
-// Monitor de Temperatura - ESP8266
+// Monitor de Temperatura - ESP8266 com Termistor
 // Projeto: App móvel para monitoramento de temperatura
-// Hardware: ESP8266 + Sensor Analógico
+// Hardware: ESP8266 + Termistor NTC
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -8,6 +8,17 @@
 // Configuração da rede WiFi
 const char* ssid = "Show";
 const char* password = "87602325";
+
+// --- CONFIGURAÇÕES DO TERMISTOR ---
+const float Vcc_sensor = 5.0;
+const float Rfixo = 10000.0;
+const float Beta = 3950.0;
+const float R0 = 10000.0;
+const float T0 = 298.15;
+const float adcRefVoltage = 1.0;
+const int adcMax = 1023;
+const float adcDividerFactor = 3.3 / 1.0;
+float calibrationOffset = 0.0;
 
 #define SENSOR_PIN A0
 

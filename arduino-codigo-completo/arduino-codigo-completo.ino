@@ -1,6 +1,6 @@
-// Monitor de Temperatura - ESP8266
+// Monitor de Temperatura - ESP8266 com Termistor
 // Projeto: App móvel para monitoramento de temperatura
-// Hardware: ESP8266 + Sensor DS18B20
+// Hardware: ESP8266 + Termistor NTC
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -8,6 +8,17 @@
 // Configuração da rede WiFi
 const char* ssid = "Show";
 const char* password = "87602325";
+
+// --- CONFIGURAÇÕES DO TERMISTOR ---
+const float Vcc_sensor = 5.0;
+const float Rfixo = 10000.0;
+const float Beta = 3950.0;
+const float R0 = 10000.0;
+const float T0 = 298.15;
+const float adcRefVoltage = 1.0;
+const int adcMax = 1023;
+const float adcDividerFactor = 3.3 / 1.0;
+float calibrationOffset = 0.0;
 
 #define SENSOR_PIN A0
 
@@ -43,17 +54,46 @@ void loop() {
 }
 
 void obterTemperatura() {
-  // Leitura analógica do sensor (0-1024)
-  int leituraAnalogica = analogRead(SENSOR_PIN);
+  // Leitura do termistor usando a lógica do professor
+  int leituraADC = analogRead(SENSOR_PIN);
   
-  // Fórmula: temperatura = (leitura * 3.3V / 1024) * 100°C
-  float temp = (leituraAnalogica * 3.3 / 1024.0) * 100.0;
+  // Converte leitura ADC para tensão no pino A0 (Vout)
+  float Vadc = ((float)leituraADC / adcMax) * adcRefVoltage;
+  float Vout = Vadc * adcDividerFactor;
   
-  // Criar resposta JSON manualmente
+  // Proteção: evitar divisão por zero
+  if (Vout <= 0.0001) {
+    // Retorna erro em JSON
+    String resposta = "{";
+    resposta += "\"temperatura\":0,";
+    resposta += "\"timestamp\":" + String(millis()) + ",";
+    resposta += "\"sensor\":\"Termistor NTC\",";
+    resposta += "\"status\":\"ERRO - Sensor desconectado\"";
+    resposta += "}";
+    
+    webServer.sendHeader("Access-Control-Allow-Origin", "*");
+    webServer.send(200, "application/json", resposta);
+    return;
+  }
+  
+  // Calcula resistência do termistor
+  float Rtermistor = Rfixo * (Vcc_sensor / Vout - 1.0);
+  
+  // Steinhart-Hart simplificada (equação Beta)
+  float tempK = 1.0 / ((1.0 / T0) + (1.0 / Beta) * log(Rtermistor / R0));
+  float tempC = tempK - 273.15;
+  
+  // Aplica offset de calibração
+  tempC += calibrationOffset;
+  
+  // Criar resposta JSON com dados do termistor
   String resposta = "{";
-  resposta += "\"temperatura\":" + String(temp, 1) + ",";
+  resposta += "\"temperatura\":" + String(tempC, 2) + ",";
   resposta += "\"timestamp\":" + String(millis()) + ",";
-  resposta += "\"sensor\":\"Analogico\",";
+  resposta += "\"sensor\":\"Termistor NTC\",";
+  resposta += "\"adc\":" + String(leituraADC) + ",";
+  resposta += "\"vout\":" + String(Vout, 3) + ",";
+  resposta += "\"resistencia\":" + String(Rtermistor, 0) + ",";
   resposta += "\"status\":\"OK\"";
   resposta += "}";
   
@@ -73,9 +113,17 @@ void obterStatus() {
 }
 
 void paginaInicial() {
-  // Leitura analógica e conversão
-  int leituraAnalogica = analogRead(SENSOR_PIN);
-  float temp = (leituraAnalogica * 3.3 / 1024.0) * 100.0;
+  // Leitura do termistor para exibição
+  int leituraADC = analogRead(SENSOR_PIN);
+  float Vadc = ((float)leituraADC / adcMax) * adcRefVoltage;
+  float Vout = Vadc * adcDividerFactor;
+  
+  float temp = 0.0;
+  if (Vout > 0.0001) {
+    float Rtermistor = Rfixo * (Vcc_sensor / Vout - 1.0);
+    float tempK = 1.0 / ((1.0 / T0) + (1.0 / Beta) * log(Rtermistor / R0));
+    temp = tempK - 273.15 + calibrationOffset;
+  }
   
   String html = "<!DOCTYPE html><html><head>";
   html += "<title>Monitor ESP8266</title>";
@@ -89,3 +137,9 @@ void paginaInicial() {
   
   webServer.send(200, "text/html", html);
 }
+
+// Configuração:
+// 1. Alterar ssid e password
+// 2. Não precisa instalar bibliotecas extras!
+// 3. Conectar termistor NTC no pino A0 (com resistor fixo de 10k)
+// 4. Alimentação: 5V (Vcc_sensor = 5.0) ou 3.3V (ajustar Vcc_sensor = 3.3)

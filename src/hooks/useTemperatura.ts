@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { TemperaturaResponse } from '../types/types';
 
-// Configuração da API
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'http://192.168.1.100' 
   : 'http://localhost:3001';
@@ -14,12 +13,10 @@ export const useTemperatura = () => {
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
   const [erro, setErro] = useState<string>('');
 
-  // Função para gerar temperatura aleatória (fallback)
   const gerarTemperaturaAleatoria = (): number => {
-    return Math.round((Math.random() * 15 + 20) * 10) / 10; // Entre 20°C e 35°C
+    return Math.round((Math.random() * 15 + 20) * 10) / 10;
   };
 
-  // Função para obter temperatura da API
   const obterTemperatura = useCallback(async (): Promise<void> => {
     console.log('=== OBTENDO TEMPERATURA ===');
     console.log('URL da API:', `${API_BASE_URL}/temperatura`);
