@@ -1,65 +1,77 @@
-import { Storage } from '@ionic/storage';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { TemperaturaRegistro } from '../types/types';
 
+interface SimpleStorage {
+  get(key: string): Promise<any>;
+  set(key: string, value: any): Promise<void>;
+}
+
 export const useStorage = () => {
-  const [storage, setStorage] = useState<Storage | null>(null);
+  const [storage, setStorage] = useState<SimpleStorage | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const storageRef = useRef<Storage | null>(null);
+  const storageRef = useRef<SimpleStorage | null>(null);
   const initializationAttempted = useRef(false);
 
   useEffect(() => {
-    const inicializar = async () => {
+    const inicializar = () => {
       if (initializationAttempted.current) return;
       
       initializationAttempted.current = true;
       
       try {
-        const novoStorage = new Storage();
-        const storageInicializado = await novoStorage.create();
-        
-        storageRef.current = storageInicializado;
-        setStorage(storageInicializado);
-        setIsInitialized(true);
-      } catch (error) {
-        // Usar localStorage como backup
-        const backupStorage = {
+        const simpleStorage: SimpleStorage = {
           async get(chave: string) {
-            const dados = localStorage.getItem(chave);
-            return dados ? JSON.parse(dados) : null;
+            const chaveCompleta = `temp-monitor-${chave}`;
+            try {
+              const dados = localStorage.getItem(chaveCompleta);
+              return dados ? JSON.parse(dados) : null;
+            } catch (e) {
+              return null;
+            }
           },
           async set(chave: string, valor: any) {
-            localStorage.setItem(chave, JSON.stringify(valor));
+            const chaveCompleta = `temp-monitor-${chave}`;
+            try {
+              const dadosString = JSON.stringify(valor);
+              localStorage.setItem(chaveCompleta, dadosString);
+              return Promise.resolve();
+            } catch (e) {
+              throw new Error('Falha ao salvar dados: ' + (e instanceof Error ? e.message : 'erro desconhecido'));
+            }
           }
         };
         
-        storageRef.current = backupStorage as any;
-        setStorage(backupStorage as any);
-        setIsInitialized(true);
+        localStorage.setItem('temp-monitor-test', 'ok');
+        const testResult = localStorage.getItem('temp-monitor-test');
+        
+        if (testResult === 'ok') {
+          localStorage.removeItem('temp-monitor-test');
+          storageRef.current = simpleStorage;
+          setStorage(simpleStorage);
+          setIsInitialized(true);
+        } else {
+          throw new Error('Teste do localStorage falhou');
+        }
+        
+      } catch (error) {
+        setIsInitialized(false);
       }
     };
 
-    if (!isInitialized && !initializationAttempted.current) {
-      inicializar();
-    }
+    inicializar();
   }, []);
 
   const salvarTemperatura = useCallback(async (temperatura: number): Promise<void> => {
-    console.log('=== salvarTemperatura CHAMADA ===');
-    console.log('Temperatura recebida:', temperatura);
-    
-    const currentStorage = storageRef.current;
-    console.log('Storage atual:', currentStorage);
-    
-    if (!currentStorage) {
-      console.error('Storage não inicializado');
-      throw new Error('Storage não está disponível');
+    if (!storageRef.current) {
+      throw new Error('Sistema de armazenamento não está pronto. Aguarde alguns segundos e tente novamente.');
     }
+
+    const currentStorage = storageRef.current;
 
     try {
       const agora = new Date();
       const registro: TemperaturaRegistro = {
-        temperatura: temperatura,
+        temperatura: Number(temperatura),
         data: agora.toLocaleDateString('pt-BR'),
         hora: agora.toLocaleTimeString('pt-BR'),
         dia: agora.getDate(),
@@ -67,28 +79,28 @@ export const useStorage = () => {
         ano: agora.getFullYear(),
         timestamp: agora.getTime()
       };
-      
-      console.log('Registro criado:', registro);
 
-      // Obter registros existentes
-      console.log('Obtendo registros existentes...');
-      const registrosExistentes = await currentStorage.get('temperaturas') || [];
-      console.log('Registros existentes:', registrosExistentes);
+      let registrosExistentes = [];
+      
+      try {
+        const dadosSalvos = await currentStorage.get('temperaturas');
+        registrosExistentes = Array.isArray(dadosSalvos) ? dadosSalvos : [];
+      } catch (getError) {
+        registrosExistentes = [];
+      }
       
       const novosRegistros = [...registrosExistentes, registro];
-      console.log('Novos registros (total):', novosRegistros.length);
       
-      // Salvar no storage
-      console.log('Salvando no storage...');
       await currentStorage.set('temperaturas', novosRegistros);
-      console.log('Salvo com sucesso!');
       
-      console.log('Temperatura salva:', registro);
-      console.log('=== salvarTemperatura CONCLUÍDA ===');
+      const evento = new CustomEvent('temperaturaRegistrada', { 
+        detail: { registros: novosRegistros.length, novoRegistro: registro }
+      });
+      window.dispatchEvent(evento);
+      
     } catch (error) {
-      console.error('Erro ao salvar temperatura:', error);
-      console.error('Stack trace:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao salvar';
+      throw new Error(`Falha ao salvar: ${errorMessage}`);
     }
   }, []);
 
@@ -100,7 +112,6 @@ export const useStorage = () => {
       const registros = await currentStorage.get('temperaturas');
       return registros || [];
     } catch (error) {
-      console.error('Erro ao obter histórico:', error);
       return [];
     }
   }, []);
@@ -111,22 +122,23 @@ export const useStorage = () => {
     
     try {
       await currentStorage.set('temperaturas', []);
-      console.log('Histórico limpo');
     } catch (error) {
-      console.error('Erro ao limpar histórico:', error);
       throw error;
     }
   }, []);
 
   const obterUltimaTemperatura = useCallback(async (): Promise<TemperaturaRegistro | null> => {
+    const currentStorage = storageRef.current;
+    if (!currentStorage) return null;
+    
     try {
-      const registros = await obterHistorico();
-      return registros.length > 0 ? registros[registros.length - 1] : null;
+      const registros = await currentStorage.get('temperaturas');
+      const historicoArray = registros || [];
+      return historicoArray.length > 0 ? historicoArray[historicoArray.length - 1] : null;
     } catch (error) {
-      console.error('Erro ao obter última temperatura:', error);
       return null;
     }
-  }, [obterHistorico]);
+  }, []);
 
   return {
     storage,

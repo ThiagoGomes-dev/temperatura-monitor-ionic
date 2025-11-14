@@ -6,8 +6,8 @@
 #include <ESP8266WebServer.h>
 
 // Configuração da rede WiFi
-const char* ssid = "Show";
-const char* password = "87602325";
+const char* ssid = "show";
+const char* password = "teste123";
 
 // --- CONFIGURAÇÕES DO TERMISTOR ---
 const float Vcc_sensor = 5.0;
@@ -100,8 +100,3 @@ void paginaInicial() {
   
   webServer.send(200, "text/html", html);
 }
-
-// Configuração:
-// 1. Alterar ssid e password
-// 2. Não precisa instalar bibliotecas extras!
-// 3. Conectar sensor analógico no pino A0

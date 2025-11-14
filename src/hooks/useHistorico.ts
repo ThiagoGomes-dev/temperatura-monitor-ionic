@@ -40,7 +40,7 @@ export const useHistorico = () => {
       setHistorico(registrosOrdenados);
       setEstatisticas(calcularEstatisticas(registrosOrdenados));
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      // Silencioso em caso de erro
     } finally {
       setLoading(false);
     }
@@ -54,16 +54,34 @@ export const useHistorico = () => {
       setHistorico([]);
       setEstatisticas({ total: 0, media: 0, maxima: 0, minima: 0 });
     } catch (error) {
-      console.error('Erro ao limpar histórico:', error);
       throw error;
     }
   }, [limparHistorico, isInitialized]);
 
-  // Carregar histórico apenas quando o storage estiver inicializado
+  // Carregar histórico quando storage inicializar
   useEffect(() => {
     if (isInitialized) {
       carregarHistorico();
     }
+  }, [isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const handleNovoRegistro = () => {
+      carregarHistorico();
+    };
+
+    window.addEventListener('temperaturaRegistrada', handleNovoRegistro as EventListener);
+
+    const interval = setInterval(() => {
+      carregarHistorico();
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('temperaturaRegistrada', handleNovoRegistro as EventListener);
+      clearInterval(interval);
+    };
   }, [isInitialized, carregarHistorico]);
 
   return {

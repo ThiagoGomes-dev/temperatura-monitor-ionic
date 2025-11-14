@@ -3,8 +3,8 @@ import axios from 'axios';
 import { TemperaturaResponse } from '../types/types';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'http://192.168.1.100' 
-  : 'http://localhost:3001';
+  ? 'http://10.199.43.182' 
+  : 'http://10.199.43.182';
 
 export const useTemperatura = () => {
   const [temperaturaAtual, setTemperaturaAtual] = useState<number>(0);
@@ -18,8 +18,6 @@ export const useTemperatura = () => {
   };
 
   const obterTemperatura = useCallback(async (): Promise<void> => {
-    console.log('=== OBTENDO TEMPERATURA ===');
-    console.log('URL da API:', `${API_BASE_URL}/temperatura`);
     setCarregando(true);
     setErro('');
     
@@ -29,20 +27,10 @@ export const useTemperatura = () => {
         { timeout: 5000 }
       );
       
-      console.log('✅ RESPOSTA COMPLETA DA API:');
-      console.log('Status HTTP:', response.status);
-      console.log('Headers:', response.headers);
-      console.log('Data (JSON):', response.data);
-      console.log('Temperatura recebida:', response.data.temperatura);
-      
       setTemperaturaAtual(response.data.temperatura);
       setConectado(true);
       setUltimaAtualizacao(new Date().toLocaleTimeString('pt-BR'));
-      console.log('Temperatura obtida com sucesso:', response.data.temperatura);
     } catch (error) {
-      console.log('Erro na API, usando temperatura simulada:', error);
-      
-      // Fallback para temperatura simulada
       const tempSimulada = gerarTemperaturaAleatoria();
       setTemperaturaAtual(tempSimulada);
       setConectado(false);
@@ -50,7 +38,6 @@ export const useTemperatura = () => {
       setErro('Usando dados simulados - API não disponível');
     } finally {
       setCarregando(false);
-      console.log('=== FIM OBTER TEMPERATURA ===');
     }
   }, []);
 
@@ -58,30 +45,25 @@ export const useTemperatura = () => {
   const testarConexao = useCallback(async (ip: string, porta: string): Promise<boolean> => {
     try {
       const url = `http://${ip}:${porta}/status`;
-      console.log('🔍 Testando conexão:', url);
       const response = await axios.get(url, { timeout: 3000 });
-      console.log('✅ Resposta do teste:', response.data);
       return response.status === 200;
     } catch (error) {
-      console.log('❌ Erro no teste de conexão:', error);
       return false;
     }
   }, []);
 
   // Monitoramento automático
   useEffect(() => {
-    // Primeira leitura
     obterTemperatura();
 
-    // Configurar intervalo para atualizações automáticas
     const intervalo = setInterval(() => {
       obterTemperatura();
-    }, 5000); // A cada 5 segundos
+    }, 5000);
 
     return () => {
       clearInterval(intervalo);
     };
-  }, []); // Remover dependência para evitar loop
+  }, []);
 
   return {
     temperaturaAtual,

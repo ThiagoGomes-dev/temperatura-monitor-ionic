@@ -38,20 +38,10 @@ const Tab1: React.FC = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
+  const [toastColor, setToastColor] = useState<'success' | 'danger' | 'primary'>('success');
   const [salvando, setSalvando] = useState(false);
 
-  // Debug do estado dos botões
-  useEffect(() => {
-    const isButtonDisabled = carregando || salvando || !isInitialized;
-    console.log('=== STATUS DO BOTÃO ===');
-    console.log('carregando:', carregando);
-    console.log('salvando:', salvando);
-    console.log('isInitialized:', isInitialized);
-    console.log('botão desabilitado:', isButtonDisabled);
-    console.log('temperaturaAtual:', temperaturaAtual);
-    console.log('========================');
-  }, [carregando, salvando, isInitialized, temperaturaAtual]);
+
 
   const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await obterTemperatura();
@@ -59,43 +49,43 @@ const Tab1: React.FC = () => {
   };
 
   const handleRegistrarTemperatura = async () => {
-    console.log('=== INÍCIO DO REGISTRO ===');
-    console.log('isInitialized:', isInitialized);
-    console.log('temperaturaAtual:', temperaturaAtual);
-    console.log('salvarTemperatura function:', typeof salvarTemperatura);
-    
+    if (salvando) return;
+
     if (!isInitialized) {
-      console.log('Storage não inicializado ainda');
-      setToastMessage('Aguarde, inicializando sistema...');
+      setToastMessage('Sistema ainda está inicializando... Aguarde um momento.');
       setToastColor('danger');
       setShowToast(true);
       return;
     }
 
-    if (temperaturaAtual === 0) {
-      console.log('Temperatura é 0, obtendo nova temperatura...');
+    if (temperaturaAtual === 0 || isNaN(temperaturaAtual)) {
+      setToastMessage('Obtendo nova leitura de temperatura...');
+      setToastColor('primary');
+      setShowToast(true);
       await obterTemperatura();
       return;
     }
 
     setSalvando(true);
+    
     try {
-      console.log('Tentando salvar temperatura:', temperaturaAtual);
       await salvarTemperatura(temperaturaAtual);
-      setToastMessage('Temperatura registrada com sucesso!');
+      
+      setToastMessage(`Temperatura ${temperaturaAtual}°C registrada com sucesso!`);
       setToastColor('success');
       setShowToast(true);
-      console.log('Temperatura salva com sucesso');
+      
     } catch (error) {
-      console.error('Erro ao registrar temperatura:', error);
-      console.error('Detalhes do erro:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setToastMessage(`Erro: ${errorMessage}`);
+      let errorMessage = 'Erro desconhecido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      setToastMessage(`Falha ao registrar: ${errorMessage}`);
       setToastColor('danger');
       setShowToast(true);
+      
     } finally {
       setSalvando(false);
-      console.log('=== FIM DO REGISTRO ===');
     }
   };
 
@@ -178,15 +168,7 @@ const Tab1: React.FC = () => {
                   </div>
                 )}
 
-                {/* Debug info */}
-                <div className="status-item">
-                  <span className="status-label">Debug:</span>
-                  <span className="status-value">
-                    Carregando: {carregando ? 'SIM' : 'NÃO'} | 
-                    Salvando: {salvando ? 'SIM' : 'NÃO'} | 
-                    Storage: {isInitialized ? 'OK' : 'ERRO'}
-                  </span>
-                </div>
+
               </div>
             </IonCardContent>
           </IonCard>
@@ -213,6 +195,8 @@ const Tab1: React.FC = () => {
               <IonIcon icon={refreshOutline} slot="start" />
               Atualizar Manualmente
             </IonButton>
+
+
           </div>
 
           {/* Card de informações */}
